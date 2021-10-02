@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.0)
+project(project)
+set(SOURCE_EXE src/main.c src/fileman.c)
+add_executable(tfm ${SOURCE_EXE})
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../bin)

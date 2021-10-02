@@ -107,7 +107,7 @@ int copy_paste_file(const char *srcPathToFile, const char *dstPathToFile) {
 
 int link_create(const char *oldPathToFile, const char *newPathToFile) {
     if (link(oldPathToFile, newPathToFile) == -1) {
-        perror("Link create");
+        perror("Link create error");
         return -1;
     }
     return 0;
