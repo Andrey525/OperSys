@@ -1,0 +1,8 @@
+*
+!lab1
+!src
+!Makefile
+!.gitignore
+!.clang-format
+!*.c
+!*.h
