@@ -1,5 +1,7 @@
 *
 !lab1
+!lab2
+!*.pdf
 !src
 !.gitignore
 !.clang-format
