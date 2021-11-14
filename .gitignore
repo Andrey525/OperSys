@@ -3,6 +3,7 @@
 !lab2
 !*.pdf
 !src
+!include
 !.gitignore
 !.clang-format
 !*.c
