@@ -12,30 +12,68 @@ void greeting() {
 }
 
 void bebrash_loop() {
-    char *line;
+    char *String;
+    char **lines;
     char **tokens;
     int status;
+    int count_lines;
+    int i;
     do {
         printf("> ");
 
-        line = bebrash_read_line();
-        tokens = bebrash_split_line(line);
-        status = bebrash_execute(tokens);
-
-        free(line);
+        String = bebrash_read_String();
+        lines = bebrash_split_String_to_lines(String);
+        i = 0;
+        status = 1;
+        while (lines[i] != NULL && status) {
+            tokens = bebrash_split_line(lines[i]);
+            status = bebrash_execute(tokens);
+            i++;
+        }
+        
+        free(String);
+        free(lines);
         free(tokens);
     } while (status);
 }
 
-char *bebrash_read_line() {
+char *bebrash_read_String() {
     char *line = NULL;
-    ssize_t bufsize = 0; // getline сама выделит память
+    ssize_t bufsize = 0;
     getline(&line, &bufsize, stdin);
     return line;
 }
 
-#define BEBRASH_TOK_BUFSIZE 64
-#define BEBRASH_TOK_DELIM " \t\r\n\a"
+char **bebrash_split_String_to_lines(char *String) {
+    int bufsize = 10;
+    int i = 0;
+    char **lines = malloc(bufsize * sizeof(char *));
+    char *istr;
+
+    if (!lines) {
+        fprintf(stderr, "bebrash: ошибка выделения памяти\n");
+        exit(EXIT_FAILURE);
+    }
+
+    istr = strtok(String, BEBRASH_LINE_DELIM);
+    while (istr != NULL) {
+        lines[i] = istr;
+        i++;
+
+        if (i == bufsize) { // здесь поставить равно
+            bufsize += 10;
+            lines = realloc(lines, bufsize * sizeof(char *));
+            if (!lines) {
+                fprintf(stderr, "bebrash: ошибка выделения памяти\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        istr = strtok(NULL, BEBRASH_LINE_DELIM);
+    }
+    lines[i] = NULL;
+    return lines;
+}
 
 char **bebrash_split_line(char *line) {
     int bufsize = BEBRASH_TOK_BUFSIZE;
@@ -53,7 +91,7 @@ char **bebrash_split_line(char *line) {
         tokens[i] = token;
         i++;
 
-        if (i >= bufsize) {
+        if (i >= bufsize) { // здесь поставить равно
             bufsize += BEBRASH_TOK_BUFSIZE;
             tokens = realloc(tokens, bufsize * sizeof(char *));
             if (!tokens) {
