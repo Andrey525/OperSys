@@ -2,13 +2,13 @@
 
 #define BEBRASH_TOK_BUFSIZE 64
 #define BEBRASH_TOK_DELIM " \t\r\n\a"
-#define BEBRASH_LINE_DELIM "|"
+#define BEBRASH_COMMAND_DELIM "|"
 
 void greeting();
 void bebrash_loop();
 char *bebrash_read_String();
-char **bebrash_split_String_to_lines(char *String);
-char **bebrash_split_line(char *line);
+char **bebrash_split_String_to_commands(char *String);
+char **bebrash_split_command(char *command);
 int bebrash_launch(char **tokens);
 int bebrash_execute(char **tokens);
 

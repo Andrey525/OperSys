@@ -13,69 +13,69 @@ void greeting() {
 
 void bebrash_loop() {
     char *String;
-    char **lines;
+    char **commands;
     char **tokens;
     int status;
-    int count_lines;
+    int count_commands;
     int i;
     do {
         printf("> ");
 
         String = bebrash_read_String();
-        lines = bebrash_split_String_to_lines(String);
+        commands = bebrash_split_String_to_commands(String);
         i = 0;
         status = 1;
-        while (lines[i] != NULL && status) {
-            tokens = bebrash_split_line(lines[i]);
+        while (commands[i] != NULL && status) {
+            tokens = bebrash_split_command(commands[i]);
             status = bebrash_execute(tokens);
             i++;
         }
         
         free(String);
-        free(lines);
+        free(commands);
         free(tokens);
     } while (status);
 }
 
 char *bebrash_read_String() {
-    char *line = NULL;
+    char *String = NULL;
     ssize_t bufsize = 0;
-    getline(&line, &bufsize, stdin);
-    return line;
+    getline(&String, &bufsize, stdin);
+    return String;
 }
 
-char **bebrash_split_String_to_lines(char *String) {
+char **bebrash_split_String_to_commands(char *String) {
     int bufsize = 10;
     int i = 0;
-    char **lines = malloc(bufsize * sizeof(char *));
+    char **commands = malloc(bufsize * sizeof(char *));
     char *istr;
 
-    if (!lines) {
+    if (!commands) {
         fprintf(stderr, "bebrash: ошибка выделения памяти\n");
         exit(EXIT_FAILURE);
     }
 
-    istr = strtok(String, BEBRASH_LINE_DELIM);
+    istr = strtok(String, BEBRASH_COMMAND_DELIM);
     while (istr != NULL) {
-        lines[i] = istr;
+        commands[i] = istr;
         i++;
 
         if (i == bufsize) { // здесь поставить равно
             bufsize += 10;
-            lines = realloc(lines, bufsize * sizeof(char *));
-            if (!lines) {
+            commands = realloc(commands, bufsize * sizeof(char *));
+            if (!commands) {
                 fprintf(stderr, "bebrash: ошибка выделения памяти\n");
                 exit(EXIT_FAILURE);
             }
         }
 
-        istr = strtok(NULL, BEBRASH_LINE_DELIM);
+        istr = strtok(NULL, BEBRASH_COMMAND_DELIM);
     }
-    lines[i] = NULL;
-    return lines;
+    commands[i] = NULL;
+    return commands;
 }
 
-char **bebrash_split_line(char *line) {
+char **bebrash_split_command(char *command) {
     int bufsize = BEBRASH_TOK_BUFSIZE;
     int i = 0;
     char **tokens = malloc(bufsize * sizeof(char *));
@@ -86,7 +86,7 @@ char **bebrash_split_line(char *line) {
         exit(EXIT_FAILURE);
     }
 
-    token = strtok(line, BEBRASH_TOK_DELIM);
+    token = strtok(command, BEBRASH_TOK_DELIM);
     while (token != NULL) {
         tokens[i] = token;
         i++;
