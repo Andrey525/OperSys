@@ -17,7 +17,7 @@ void bebrash_loop() {
     char ***tokens;
     int status;
     int count_commands;
-    int i, j;
+    int i;
     do {
         printf("> ");
         String = bebrash_read_String();
@@ -25,32 +25,12 @@ void bebrash_loop() {
         tokens = malloc(sizeof(char*) * count_commands);
         for (i = 0; i < count_commands; i++) {
             tokens[i] = bebrash_split_command(commands[i]);
-            j = 0;
-            // while (tokens[i][j] != NULL) {
-            //     printf("%s ", tokens[i][j]);
-            //     j++;
-            // }
-            // printf("\n");
         }
-        status = bebrash_launch_pipe(tokens, count_commands);
+        status = bebrash_launch(tokens, count_commands);
         free(String);
         free(commands);
         free(tokens);
-        // if (count_commands == 1) {
-        //     status = bebrash_execute(tokens[0]);
-        //     free(String);
-        //     free(commands);
-        //     free(tokens);
-        // } else if (count_commands == 2) {
-        //     status = bebrash_launch_pipe(tokens, tokens2);
-        //     free(String);
-        //     free(commands);
-        //     free(tokens);
-        // } else {
-        //     printf("Bebrash не умеет выполнять более двух команд(((!\n");
-        //     free(String);
-        //     free(commands);
-        // }
+
     } while (status);
 }
 
@@ -119,26 +99,7 @@ char **bebrash_split_command(char *command) {
     return tokens;
 }
 
-int bebrash_launch(char **tokens) {
-    pid_t pid;
-    int status;
-    pid = fork();
-    if (pid == 0) {
-        // Дочерний процесс
-        if (execvp(tokens[0], tokens) == -1) {
-            perror("exec");
-        }
-        exit(EXIT_FAILURE);
-    } else {
-        // Родительский процесс
-        do {
-            waitpid(pid, &status, WUNTRACED);
-        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    }
-    return 1;
-}
-
-int bebrash_launch_pipe(char ***tokens, int count_commands) {
+int bebrash_launch(char ***tokens, int count_commands) {
 
     if (count_commands == 1) {
         int flag = bebrash_execute(tokens[0]);
@@ -149,51 +110,55 @@ int bebrash_launch_pipe(char ***tokens, int count_commands) {
             int status;
             pid = fork();
             if (pid == 0) {
-                // Дочерний процесс
-                if (execvp(tokens[0][0], tokens[0]) == -1) {
-                    perror("exec");
-                }   
-                exit(EXIT_FAILURE);
+                execvp(tokens[0][0], tokens[0]);  
+                perror("exec");
+                exit(1);
             } else {
-                // Родительский процесс
                 do {
                     waitpid(pid, &status, WUNTRACED);
                 } while (!WIFEXITED(status) && !WIFSIGNALED(status));
             }
-            return 1;
         }
 
     } else {
         pid_t pid;
-        int fd[count_commands - 1][2];
+        int fd[count_commands][2];
         int status;
         int step = 0;
-        pipe(fd[0]);
-        pid = fork();
-        if (pid == 0) {
-            dup2(fd[0][WRITE_END], STDOUT_FILENO); // дублируем дескриптор вывода (теперь вывод идет не в stdout (мы его закрыли), а в fd[WRITE_END])
-            close(fd[0][READ_END]); // закрываем дескриптор для чтения
-            execvp(tokens[0][0], tokens[0]);
-            perror("exec1");
-            exit(1);
-        } else {
-            pid = fork();
-            if (pid == 0) {
-                dup2(fd[0][READ_END], STDIN_FILENO); // дублируем дескриптор ввода (теперь ввод идет не из stdin (его мы к тому же закрыли), а из fd[READ_END])
-                close(fd[0][WRITE_END]); // закрываем дескриптор для вывода
-                execvp(tokens[1][0], tokens[1]);
-                perror("exec2");
-                exit(1);
-            } else {
-                int status;
-                close(fd[0][WRITE_END]); // закрываем дескриптор для вывода
-                waitpid(pid, &status, 0); // ждем завершения процессов
-            
-            }
+        int i;
+        for (i = 0; i < count_commands; i++) {
+            pipe(fd[i]);
         }
-        return 1;
+        while (step != count_commands) {
+            pid = fork();
+            if (step == count_commands - 1) {
+                if (pid == 0) {
+                    dup2(fd[step][READ_END], STDIN_FILENO); // дублируем дескриптор ввода (теперь ввод идет не из stdin (его мы к тому же закрыли), а из fd[step][READ_END])
+                    close(fd[step][WRITE_END]); // закрываем дескриптор для вывода
+                    execvp(tokens[step][0], tokens[step]);
+                    perror("exec");
+                    exit(1);
+                }
+            } else {
+                if (pid == 0) {
+                    dup2(fd[step][READ_END], STDIN_FILENO); // дублируем дескриптор ввода (теперь ввод идет не из stdin (его мы к тому же закрыли), а из fd[step][READ_END])
+                    close(fd[step][WRITE_END]);
+                    dup2(fd[step + 1][WRITE_END], STDOUT_FILENO); // дублируем дескриптор вывода (теперь вывод идет не в stdout (мы его закрыли), а в fd[step+1][WRITE_END])
+                    close(fd[step + 1][READ_END]); // закрываем дескриптор для чтения
+                    execvp(tokens[step][0], tokens[step]);
+                    perror("exec");
+                    exit(1);
+                }
+            }
+            close(fd[step + 1][WRITE_END]); // закрываем дескриптор для вывода
+            do {
+                waitpid(pid, &status, WUNTRACED);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            step++;
+        }
     }
 
+    return 1;
 }
 
 char *builtin_str[] = {"cd", "help", "exit"};
